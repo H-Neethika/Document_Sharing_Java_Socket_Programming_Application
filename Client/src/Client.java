@@ -15,7 +15,7 @@ public class Client {
      final File[] fileToSend=new File[1];
 
        JFrame jFrame =new JFrame("DDS's Client");
-       jFrame.setSize(450,450);
+       jFrame.setSize(600,600);
        jFrame.setLayout(new BoxLayout(jFrame.getContentPane(),BoxLayout.Y_AXIS));
        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -65,7 +65,7 @@ public class Client {
          } else {
            try {
              FileInputStream fileInputStream = new FileInputStream(fileToSend[0].getAbsolutePath());
-             Socket socket = new Socket("192.168.43.102", 1234);
+             Socket socket = new Socket("localhost", 1234);
 
              DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
