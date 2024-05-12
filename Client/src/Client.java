@@ -1,95 +1,154 @@
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.awt.event.*;
+import java.io.*;
 import java.net.Socket;
+import javax.swing.border.EmptyBorder;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Client {
-   public static void  main (String[] args){
+  private static List<File> selectedFiles = new ArrayList<>();
 
-     final File[] fileToSend=new File[1];
+  public static void main(String[] args) {
+    JFrame jFrame = new JFrame("DSS Client");
+    jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-       JFrame jFrame =new JFrame("DDS's Client");
-       jFrame.setSize(450,450);
-       jFrame.setLayout(new BoxLayout(jFrame.getContentPane(),BoxLayout.Y_AXIS));
-       jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    // Creating a JPanel with a background image
+    JPanel backgroundPanel = new JPanel(new BorderLayout()) {
+      @Override
+      protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        ImageIcon backgroundImage = new ImageIcon("Images/SenderBackground.jpg"); // Change the file path accordingly
+        g.drawImage(backgroundImage.getImage(), 0, 0, getWidth(), getHeight(), this);
+      }
 
-       JLabel jlTitle=new JLabel("Document Sharing application -Client-");
-       jlTitle.setFont(new Font("Arial",Font.BOLD,25));
-       jlTitle.setBorder(new EmptyBorder(20,0,10,0));
-       jlTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+      @Override
+      public Dimension getPreferredSize() {
+        return new Dimension(1000, 650); // Adjust the dimensions here as needed
+      }
+    };
 
-     JLabel jlFileName=new JLabel("Choose a file to send");
-     jlFileName.setFont(new Font("Arial",Font.BOLD,25));
-     jlFileName.setBorder(new EmptyBorder(50,0,0,0));
-     jlFileName.setAlignmentX(Component.CENTER_ALIGNMENT);
+    JLabel jlTitle = new JLabel("Effortlessly share files securely. Experience seamless sharing now!");
+    jlTitle.setFont(new Font("Arial", Font.BOLD, 28));
+    jlTitle.setForeground(new Color(96, 82, 157));
+    jlTitle.setBorder(new EmptyBorder(20, 0, 10, 0));
+    jlTitle.setHorizontalAlignment(SwingConstants.CENTER);
+    backgroundPanel.add(jlTitle, BorderLayout.NORTH);
 
-       JPanel jpButton =new JPanel();
-       jpButton.setBorder(new EmptyBorder(75,0,10,0));
+    JPanel contentPanel = new JPanel(new GridBagLayout());
+    contentPanel.setOpaque(false);
 
-       JButton jbSendFile=new JButton("Send File");
-     jbSendFile.setPreferredSize(new Dimension(150,75));
-     jbSendFile.setFont(new Font("Arial",Font.BOLD,20));
+    JLabel jlFileName = new JLabel("Choose files to send");
+    jlFileName.setFont(new Font("Arial", Font.BOLD, 25));
+    jlFileName.setForeground(new Color(36, 26, 97));
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.gridx = 0;
+    gbc.gridy = 0;
+    gbc.gridwidth = 2;
+    gbc.anchor = GridBagConstraints.CENTER;
+    contentPanel.add(jlFileName, gbc);
 
-     JButton jbChooseFile=new JButton("Choose File");
-     jbChooseFile.setPreferredSize(new Dimension(150,75));
-     jbChooseFile.setFont(new Font("Arial",Font.BOLD,20));
+    JTextArea selectedFilesTextArea = new JTextArea();
+    selectedFilesTextArea.setEditable(false);
+    selectedFilesTextArea.setLineWrap(true);
+    gbc.gridx = 0;
+    gbc.gridy = 1;
+    gbc.gridwidth = 2;
+    gbc.insets = new Insets(10, 10, 10, 10);
+    JScrollPane scrollPane = new JScrollPane(selectedFilesTextArea);
+    scrollPane.setPreferredSize(new Dimension(500, 100));
+    contentPanel.add(scrollPane, gbc);
 
-     jpButton.add(jbSendFile);
-     jpButton.add(jbChooseFile);
+    JButton jbChooseFile = new JButton("<html><font color='white'>Choose File</font></html>");
+    jbChooseFile.setFont(new Font("Arial", Font.BOLD, 20));
+    jbChooseFile.setBackground(new Color(96, 82, 157)); // Set background color
+    jbChooseFile.setForeground(Color.WHITE); // Set text color
+    gbc.gridx = 0;
+    gbc.gridy = 2;
+    gbc.gridwidth = 1;
+    gbc.insets = new Insets(350, 80, 0, 10);
+    contentPanel.add(jbChooseFile, gbc);
 
-     jbChooseFile.addActionListener(new ActionListener() {
-       @Override
-       public void actionPerformed(ActionEvent e) {
-         JFileChooser jFileChooser =new JFileChooser();
-         jFileChooser.setDialogTitle("Choose a file to send .");
+    JButton jbSendFiles = new JButton("<html><font color='white'>Send Files</font></html>");
+    jbSendFiles.setFont(new Font("Arial", Font.BOLD, 20));
+    jbSendFiles.setBackground(new Color(255, 144, 141)); // Set background color
+    jbSendFiles.setForeground(Color.WHITE); // Set text color
+    gbc.gridx = 1;
+    gbc.gridy = 2;
+    gbc.gridwidth = 1;
+    gbc.insets = new Insets(350, 0, 0, 0);
+    contentPanel.add(jbSendFiles, gbc);
 
-         if(jFileChooser.showOpenDialog(null)==JFileChooser.APPROVE_OPTION)
-         {
-           fileToSend[0]=jFileChooser.getSelectedFile();
-           jlFileName.setText("The file you want to send is: "+fileToSend[0].getName());
-         }
+    jbChooseFile.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        JFileChooser jFileChooser = new JFileChooser();
+        jFileChooser.setDialogTitle("Choose files to send.");
+        jFileChooser.setMultiSelectionEnabled(true); // Enable selecting multiple files
 
-       }
-     });
-     jbSendFile.addActionListener(new ActionListener() {
-       @Override
-       public void actionPerformed(ActionEvent e) {
-         if (fileToSend[0] == null) {
-           jlFileName.setText("Please choose a file first.");
-         } else {
-           try {
-             FileInputStream fileInputStream = new FileInputStream(fileToSend[0].getAbsolutePath());
-             Socket socket = new Socket("localhost", 1234);
+        if (jFileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+          File[] files = jFileChooser.getSelectedFiles(); // Get selected files
+          selectedFiles.clear(); // Clear previous selections
+          selectedFilesTextArea.setText(""); // Clear previous file names
+          for (File file : files) {
+            selectedFiles.add(file);
+            selectedFilesTextArea.append(file.getName() + "\n"); // Display selected file names
+          }
+        }
+      }
+    });
 
-             DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+    jbSendFiles.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (!selectedFiles.isEmpty()) {
+          for (File file : selectedFiles) {
+            sendFile(file); // Send each selected file
+          }
+        } else {
+          jlFileName.setText("Please choose files to send first.");
+        }
+      }
+    });
 
-             String fileName = fileToSend[0].getName();
-             byte[] fileNameBytes = fileName.getBytes();
+    backgroundPanel.add(contentPanel, BorderLayout.CENTER);
 
-             byte[] fileContentBytes = new byte[(int) fileToSend[0].length()];
-             fileInputStream.read(fileContentBytes);
+    // Set the JPanel as the content pane of the JFrame
+    jFrame.setContentPane(backgroundPanel);
+    jFrame.pack(); // Pack the frame to adjust its size
+    jFrame.setVisible(true);
+    jFrame.setLocationRelativeTo(null);
+  }
 
-             dataOutputStream.writeInt(fileNameBytes.length);
-             dataOutputStream.write(fileNameBytes);
+  private static void sendFile(File fileToSend) {
+    if (fileToSend == null) {
+      return;
+    }
 
-             dataOutputStream.writeInt(fileContentBytes.length);
-             dataOutputStream.write(fileContentBytes);
-           } catch (IOException error) {
-             error.printStackTrace();
-           }
-         }
-       }
-     });
+    try {
+      FileInputStream fileInputStream = new FileInputStream(fileToSend.getAbsolutePath());
+      Socket socket = new Socket("localhost", 1234); // Change to server IP and port
+      DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
-     jFrame.add(jlTitle);
-     jFrame.add(jlFileName);
-     jFrame.add(jpButton);
-     jFrame.setVisible(true);
-   }
+      String fileName = fileToSend.getName();
+      byte[] fileNameBytes = fileName.getBytes();
+
+      byte[] fileContentBytes = new byte[(int) fileToSend.length()];
+      fileInputStream.read(fileContentBytes);
+
+      dataOutputStream.writeInt(fileNameBytes.length);
+      dataOutputStream.write(fileNameBytes);
+
+      dataOutputStream.writeInt(fileContentBytes.length);
+      dataOutputStream.write(fileContentBytes);
+
+      // Close resources
+      fileInputStream.close();
+      dataOutputStream.close();
+      socket.close();
+    } catch (IOException error) {
+      error.printStackTrace();
+    }
+  }
 }
