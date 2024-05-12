@@ -1,45 +1,33 @@
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.*;
-import java.awt.geom.RoundRectangle2D;
 import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Map;
+import java.awt.geom.RoundRectangle2D;
 
 public class Server {
     static ArrayList<MyFile> myFiles = new ArrayList<>();
-    private static Map<String, String> ipToNameMap = new HashMap<>();
 
     static JFrame jFrame;
     static JPanel jPanel;
     static JPanel emptyPanel;
     static JLabel emptyLabel;
-    private static void initializeIpToNameMapping() {
-        ipToNameMap.put("192.168.56.1", "Neethika");
-        ipToNameMap.put("192.168.56.2", "Praveenan");
-        ipToNameMap.put("192.168.56.3", "Tuan Faied");
-    }
+
+
 
     public static void main(String[] args) throws IOException {
-        initializeIpToNameMapping();
         jFrame = new JFrame("DSS Server");
         jFrame.setSize(1000, 650);
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jFrame.setLocationRelativeTo(null);
         jPanel = new JPanel();
         jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.Y_AXIS));
-        Color lightBlue = new Color(173,216,230);
+        Color lightBlue = new Color(173, 216, 230);
         jPanel.setBackground(lightBlue);
-
-
 
         JScrollPane jScrollPane = new JScrollPane(jPanel);
         jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
@@ -71,7 +59,7 @@ public class Server {
             emptyLabel = new JLabel(new ImageIcon(scaledImage));
 
             emptyPanel.add(textLabel, BorderLayout.NORTH);
-            emptyPanel.add(emptyLabel,BorderLayout.CENTER);
+            emptyPanel.add(emptyLabel, BorderLayout.CENTER);
         } else {
             System.err.println("Image not found or invalid: placeholder.jpg");
         }
@@ -90,7 +78,8 @@ public class Server {
                 try {
                     Socket socket = serverSocket.accept();
                     String senderIp = socket.getInetAddress().getHostAddress();  // Get the IP address
-                    handleClient(socket,senderIp);
+
+                    handleClient(socket);
                 } catch (IOException error) {
                     error.printStackTrace();
                 }
@@ -99,15 +88,19 @@ public class Server {
         serverThread.start();
     }
 
-    private static void handleClient(Socket socket, String senderIp) {
+    private static void handleClient(Socket socket) {
+        // Print connection established message
+        String senderIp = socket.getInetAddress().getHostAddress();  // Get the IP address
+        System.out.println("Connection established with client: " + senderIp);
+
         try {
             DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
 
-            int fileNameLength = dataInputStream.readInt();
+            int fileNameLength = dataInputStream.readInt(); // the length of the file name
 
             if (fileNameLength > 0) {
                 byte[] fileNameBytes = new byte[fileNameLength];
-                dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
+                dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length); //reads the bytes of the file name from the input stream and stores them in the fileNameBytes array.
                 String fileName = new String(fileNameBytes);
 
                 int fileContentLength = dataInputStream.readInt();
@@ -116,7 +109,12 @@ public class Server {
                     byte[] fileContentBytes = new byte[fileContentLength];
                     dataInputStream.readFully(fileContentBytes, 0, fileContentLength);
 
-                    addFileRow(fileName, fileContentBytes,senderIp);
+                    // Print file details
+                    System.out.println("Processing file: " + fileName + " from client: " + senderIp);
+
+                    // Add the file to the GUI
+                    addFileRow(fileName, fileContentBytes, senderIp);
+
                     myFiles.add(new MyFile(Thread.currentThread().getId(), fileName, fileContentBytes, getFileExtension(fileName)));
 
                     if (myFiles.size() == 1) {
@@ -129,6 +127,8 @@ public class Server {
         } finally {
             try {
                 socket.close();
+                // Print when connection is closed
+                System.out.println("Connection closed with client: " + senderIp + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -154,6 +154,7 @@ public class Server {
         // Return the corresponding icon, or the default if none found
         return fileIcons.getOrDefault(extension, defaultIcon);
     }
+
     private static void addFileRow(String fileName, byte[] fileContentBytes, String senderIp) {
         // Custom panel with rounded corners and fixed size
         RoundedPanel fileRowPanel = new RoundedPanel(50); // 10-pixel corner radius
@@ -170,13 +171,9 @@ public class Server {
         CompoundBorder combinedBorder = new CompoundBorder(new LineBorder(Color.GRAY, 0), paddingBorder);
         fileRowPanel.setBorder(combinedBorder);
 
-        // Retrieve name corresponding to sender IP from the map
-        String senderName = ipToNameMap.getOrDefault(senderIp, senderIp);
-
-        // Add a label for the sender name
-        JLabel nameLabel = new JLabel("Sender: " + senderName);
-        nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        nameLabel.setBackground(Color.cyan);
+        // Add a label for the sender IP address
+        JLabel ipLabel = new JLabel("Sender IP: " + senderIp);
+        ipLabel.setFont(new Font("Arial", Font.BOLD, 14));
 
         // Add a label for the file name with an icon
         Icon fileIcon = getFileIcon(fileName);
@@ -205,19 +202,20 @@ public class Server {
 
         // Add components to the custom rounded panel
         fileRowPanel.setLayout(new BorderLayout());
-        fileRowPanel.add(nameLabel, BorderLayout.NORTH); // Name label at the top
+        fileRowPanel.add(ipLabel, BorderLayout.NORTH); // IP label at the top
         fileRowPanel.add(fileNamePanel, BorderLayout.CENTER); // File name in the center
 
         // Add download button to the right side
         fileRowPanel.add(downloadButton, BorderLayout.EAST); // Download button on the right
 
         // Add vertical spacing between file rows
-        jPanel.add(Box.createVerticalStrut(10), 0);// Add a gap between files
+        jPanel.add(Box.createVerticalStrut(10), 0); // Add a gap between files
         jPanel.add(fileRowPanel, 1); // Add the custom rounded panel to the main panel
 
         jPanel.revalidate();
         jPanel.repaint();
     }
+
 
     private static void updateEmptyState() {
         if (myFiles.isEmpty()) {
@@ -229,6 +227,24 @@ public class Server {
         }
         jPanel.revalidate();
         jPanel.repaint();
+    }
+
+
+    // Custom output stream to redirect System.out
+    static class CustomOutputStream extends OutputStream {
+        private JTextArea textArea;
+
+        public CustomOutputStream(JTextArea textArea) {
+            this.textArea = textArea;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            // Redirect the output to the text area
+            textArea.append(String.valueOf((char) b));
+            // Scroll the text area to the end
+            textArea.setCaretPosition(textArea.getDocument().getLength());
+        }
     }
 
     public static JFrame createFrame(String fileName, byte[] fileData) {
@@ -244,7 +260,7 @@ public class Server {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton downloadButton = new JButton( new ImageIcon("download_icon.png"));
+        JButton downloadButton = new JButton(new ImageIcon("download_icon.png"));
         downloadButton.setFont(new Font("Arial", Font.BOLD, 16));
         downloadButton.addActionListener(e -> {
             int option = JOptionPane.showConfirmDialog(frame, "Are you sure you want to download this file?", "Confirm Download", JOptionPane.YES_NO_OPTION);
@@ -303,5 +319,4 @@ public class Server {
             g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius));
         }
     }
-
 }
